@@ -1,0 +1,204 @@
+{
+  "asOf": "2026-10-28",
+  "source": "번개장터·헬로마켓·후루츠패밀리에 노출된 판매 중 매물 가격(호가)과 일부 추정값",
+  "disclaimer": "임시 데이터예요. 판매 중 가격(호가)이라 실제 거래가보다 높을 수 있어요. 신뢰도 '추정'은 확인된 매물이 없어 정한 값이에요.",
+  "items": [
+    {
+      "id": 1,
+      "name": "아이패드 에어 5세대 64GB",
+      "keywords": [
+        "아이패드",
+        "아이패드에어",
+        "에어5",
+        "ipad"
+      ],
+      "low": 380000,
+      "mid": 430000,
+      "high": 480000,
+      "sampleCount": 1,
+      "sampleMin": 430000,
+      "sampleMax": 430000,
+      "confidence": "낮음",
+      "basis": "헬로마켓 1건(와이파이, 충전기·박스 없음, 배터리 85%)만 확인. 나머지는 추정 범위."
+    },
+    {
+      "id": 2,
+      "name": "이케아 책상 160cm 화이트",
+      "keywords": [
+        "책상",
+        "이케아",
+        "멜토르프",
+        "데스크"
+      ],
+      "low": 40000,
+      "mid": 60000,
+      "high": 80000,
+      "sampleCount": 0,
+      "sampleMin": null,
+      "sampleMax": null,
+      "confidence": "추정",
+      "basis": "같은 모델의 매물을 확인하지 못해 추정값."
+    },
+    {
+      "id": 3,
+      "name": "다이슨 V8 무선청소기",
+      "keywords": [
+        "다이슨",
+        "v8",
+        "청소기",
+        "무선청소기"
+      ],
+      "low": 90000,
+      "mid": 110000,
+      "high": 140000,
+      "sampleCount": 1,
+      "sampleMin": 112000,
+      "sampleMax": 112000,
+      "confidence": "낮음",
+      "basis": "정상 작동 1건(112,000원). 부품용·방전 매물(1~4만원대)은 제외."
+    },
+    {
+      "id": 4,
+      "name": "나이키 바람막이 L",
+      "keywords": [
+        "나이키",
+        "바람막이",
+        "윈드브레이커",
+        "nike"
+      ],
+      "low": 44000,
+      "mid": 66000,
+      "high": 90000,
+      "sampleCount": 4,
+      "sampleMin": 40000,
+      "sampleMax": 95000,
+      "confidence": "낮음",
+      "basis": "빈티지 나이키 윈드브레이커 4건. 사이즈 표기 없음."
+    },
+    {
+      "id": 5,
+      "name": "해리포터 영문판 7권 세트",
+      "keywords": [
+        "해리포터",
+        "영문판",
+        "박스세트",
+        "harry"
+      ],
+      "low": 40000,
+      "mid": 55000,
+      "high": 70000,
+      "sampleCount": 0,
+      "sampleMin": null,
+      "sampleMax": null,
+      "confidence": "추정",
+      "basis": "신뢰할 수 있는 매물을 확인하지 못해 추정값."
+    },
+    {
+      "id": 7,
+      "name": "에어팟 프로 2세대",
+      "keywords": [
+        "에어팟",
+        "에어팟프로",
+        "airpods",
+        "프로2"
+      ],
+      "low": 132000,
+      "mid": 140000,
+      "high": 150000,
+      "sampleCount": 9,
+      "sampleMin": 119000,
+      "sampleMax": 170000,
+      "confidence": "보통",
+      "basis": "번개장터 본체·풀박스 매물 9건. 미개봉(약 17만원대)과 한쪽 유닛은 제외."
+    },
+    {
+      "id": 8,
+      "name": "닌텐도 스위치 OLED 화이트",
+      "keywords": [
+        "닌텐도",
+        "스위치",
+        "switch",
+        "oled"
+      ],
+      "low": 211000,
+      "mid": 230000,
+      "high": 250000,
+      "sampleCount": 40,
+      "sampleMin": 144000,
+      "sampleMax": 310000,
+      "confidence": "보통",
+      "basis": "번개장터 본체 단품·풀박스 매물. 액세서리·독 단품·매입광고·신품·게임 묶음 제외."
+    },
+    {
+      "id": 9,
+      "name": "하이브리드 자전거 (입문용)",
+      "keywords": [
+        "자전거",
+        "하이브리드",
+        "자이언트",
+        "bike"
+      ],
+      "low": 100000,
+      "mid": 160000,
+      "high": 250000,
+      "sampleCount": 2,
+      "sampleMin": 200000,
+      "sampleMax": 350000,
+      "confidence": "낮음",
+      "basis": "자이언트 하이브리드 2건뿐이라 폭이 넓음. 브랜드·연식에 따라 크게 달라요."
+    },
+    {
+      "id": 10,
+      "name": "아디다스 삼바 260",
+      "keywords": [
+        "삼바",
+        "아디다스",
+        "samba",
+        "adidas"
+      ],
+      "low": 65000,
+      "mid": 85000,
+      "high": 100000,
+      "sampleCount": 1,
+      "sampleMin": 90000,
+      "sampleMax": 90000,
+      "confidence": "낮음",
+      "basis": "삼바 OG 화이트 240, 1회 착용 1건(9만원). 나머지는 추정 범위."
+    },
+    {
+      "id": 11,
+      "name": "1인용 패브릭 소파",
+      "keywords": [
+        "소파",
+        "1인소파",
+        "패브릭"
+      ],
+      "low": 40000,
+      "mid": 60000,
+      "high": 90000,
+      "sampleCount": 0,
+      "sampleMin": null,
+      "sampleMax": null,
+      "confidence": "추정",
+      "basis": "판매 매물을 확인하지 못해 추정값. (이케아 1인 소파 구매 희망글 10만원 1건 참고)"
+    },
+    {
+      "id": 12,
+      "name": "무선 서큘레이터",
+      "keywords": [
+        "서큘레이터",
+        "써큘레이터",
+        "선풍기",
+        "bldc"
+      ],
+      "low": 35000,
+      "mid": 45000,
+      "high": 76000,
+      "sampleCount": 5,
+      "sampleMin": 25000,
+      "sampleMax": 92000,
+      "confidence": "낮음",
+      "basis": "번개장터 BLDC·무선 서큘레이터 5건(상태·브랜드 제각각)."
+    }
+  ]
+}

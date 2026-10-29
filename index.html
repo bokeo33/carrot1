@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>중고거래 시세 노트 + 흥정 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+/* Layout: 데스크톱 전용.
+   왼쪽 열 = 맨 위 검색 → 그 아래 [마지노선 | 메모] 2칸 / 오른쪽 = 폰 안의 흥정 시뮬레이터(iframe) */
+:root{
+  --bg:#fd9a52; --cream:#fff9f0; --paper:#ffffff; --ink:#27313a; --muted:#66707a;
+  --sage:#bdd3ae; --peach:#e5946a; --shadow:#d9742a; --onbg:#3a1a05;
+  --good:#2f8a55; --warn:#d98a1f; --bad:#c9453c;
+  --font-body:"Jua",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-display:"Jua","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{font-synthesis:none} /* Jua는 굵기가 한 가지뿐이라 가짜 굵기를 만들지 않는다 */
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;min-width:1140px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+[hidden]{display:none!important}
+
+.page{height:100%;display:grid;grid-template-columns:minmax(540px,620px) auto;justify-content:center;gap:44px;padding:16px 40px}
+.left{min-height:0;overflow:hidden;padding:104px 14px 20px 4px;display:flex;flex-direction:column;gap:24px}
+.pair{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch}
+.right{display:grid;place-items:center;min-height:0}
+
+.card{flex:none;display:flex;flex-direction:column;background:var(--cream);border:1.5px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--shadow);overflow:hidden}
+.card>header{display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1.5px solid var(--ink);background:var(--sage)}
+.card>header h2{font-family:var(--font-display);font-size:21px;font-weight:400;letter-spacing:.01em}
+.card>header .tag{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.06em;color:#3b4a3a}
+.card .body{flex:1;min-height:0;padding:20px;display:flex;flex-direction:column;gap:16px}
+
+.title{position:absolute;left:2px;bottom:calc(100% + 22px);margin:0;font-family:var(--font-display);font-size:29px;font-weight:400;line-height:1.1;color:#1b1b1b;white-space:nowrap}
+.stage{position:relative;flex:none}
+.stage>.card{position:relative;z-index:1}
+/* 마스코트는 검색 카드의 윗변에 걸터앉은 모습: 카드 뒤에 두고 발 쪽을 카드 테두리로 살짝 가린다 */
+.perch{position:absolute;right:24px;bottom:100%;margin-bottom:-14px;z-index:0;display:flex;align-items:flex-start;gap:16px;pointer-events:none}
+.mascot{flex:none}
+.mascot img{display:block;height:106px;width:auto;transform-origin:50% 100%}
+.mascot img.pop{animation:pop .45s}
+@keyframes pop{0%{transform:scale(.92) rotate(-4deg)}60%{transform:scale(1.05) rotate(3deg)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.mascot img.pop{animation:none}}
+.bubble{position:relative;margin-top:2px;max-width:196px;padding:7px 12px;border:1.5px solid var(--ink);border-radius:16px;background:var(--cream);font-weight:700;font-size:13px;line-height:1.35;box-shadow:3px 3px 0 var(--shadow)}
+.bubble::before{content:"";position:absolute;right:-10px;top:18px;width:15px;height:15px;background:var(--cream);border-top:1.5px solid var(--ink);border-right:1.5px solid var(--ink);transform:rotate(45deg)}
+
+.field{display:flex;gap:10px}
+.input{flex:1;min-width:0;height:48px;padding:0 14px;border:1.5px solid #8b949b;border-radius:14px;background:var(--paper);font-size:16px}
+.input:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--peach)}
+.btn{flex:none;height:48px;padding:0 20px;border:1.5px solid var(--ink);border-radius:14px;background:var(--peach);font-weight:700;box-shadow:2px 2px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:3px 3px 0 var(--ink)}
+.btn.ghost{background:var(--cream);height:36px;padding:0 14px;font-size:13px;box-shadow:2px 2px 0 var(--ink)}
+.label{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted)}
+.err{font-size:13px;color:var(--bad)}
+
+/* 플랫폼 버튼 */
+.sites{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.site{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border:1.5px solid var(--ink);border-radius:14px;background:var(--paper);font-weight:700;box-shadow:2px 2px 0 var(--ink)}
+.site:hover:not(:disabled){background:#fff1dd}
+.site:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.site:disabled{opacity:.45;cursor:not-allowed}
+.site small{font-weight:400;color:var(--muted);font-size:12px}
+.site i{font-style:normal;font-size:12px}
+
+/* 참고 시세 */
+.picks-row{display:flex;align-items:center;gap:10px;height:30px}
+.picks-row>.label{flex:none}
+.chips{display:flex;flex-wrap:nowrap;gap:8px;overflow:hidden;min-width:0;align-items:center}
+.chip{flex:none}
+.chip{padding:3px 12px;border:1.5px solid var(--ink);border-radius:999px;background:var(--cream);font-size:13px;font-weight:500}
+.chip:hover{background:#fff1dd}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
+.ref{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border:2px dashed #9aa3a9;border-radius:14px;background:var(--paper)}
+.ref .nm{font-weight:700}
+.ref .px{font-family:var(--font-display);font-size:22px;line-height:1.2}
+.ref .sub{font-size:12px;color:var(--muted)}
+.ref .grow{flex:1;min-width:160px}
+.badge{padding:1px 9px;border:2px solid var(--ink);border-radius:999px;font-size:12px;font-weight:700}
+.badge.mid{background:#cfe6c4}.badge.low{background:#ffe3a6}.badge.est{background:#f6c9c2}
+
+/* 마지노선 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fld .label{display:block;margin-bottom:6px}
+.fld .input{width:100%}
+.fld .hint{margin-top:4px;min-height:20px;font-size:13px}
+.gauge{position:relative;padding:32px 0 44px}
+.track{position:relative;height:20px;border:1.5px solid var(--ink);border-radius:12px;overflow:hidden;background:#eee}
+.zone{position:absolute;top:0;bottom:0}
+.zone.ok{background:#c9e3b8}.zone.nego{background:#fde3a4}.zone.over{background:#f3b9b1}
+.needle{position:absolute;top:0;left:0;transform:translateX(-50%);transition:left .45s cubic-bezier(.3,1.3,.5,1);text-align:center;pointer-events:none}
+.needle b{display:block;font-size:12px;white-space:nowrap;background:var(--ink);color:var(--cream);padding:1px 8px;border-radius:8px}
+.needle i{display:block;width:4px;height:32px;margin:0 auto;background:var(--ink);border-radius:2px}
+.gl{position:absolute;top:calc(100% - 38px);font-size:12px;color:var(--muted);transform:translateX(-50%);white-space:nowrap;text-align:center;line-height:1.3}
+.gl b{display:block;color:var(--ink);font-size:13px}
+.verdict{height:104px;overflow:hidden;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1.5px solid var(--ink);border-radius:14px;background:var(--paper)}
+.verdict .em{font-size:28px;line-height:1}
+.verdict b{display:block;font-family:var(--font-display);font-weight:400;font-size:18px;white-space:nowrap;line-height:1.25}
+.verdict p{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.45}
+.verdict.v-ok{background:#eaf5e2}.verdict.v-nego{background:#fdf0d5}.verdict.v-over{background:#fdebe8}
+
+/* 메모 */
+textarea.memo{flex:1;width:100%;min-height:0;resize:none;padding:14px 16px;border:1.5px solid #8b949b;border-radius:14px;background:
+  repeating-linear-gradient(transparent 0 27px,#ece5d6 27px 28px),var(--paper);line-height:28px;font-size:15px}
+textarea.memo:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--peach)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.saved{font-size:12px;color:var(--muted)}
+
+/* 폰 */
+.phone{position:relative;height:clamp(640px,calc(100vh - 32px),1040px);aspect-ratio:.62;background:var(--cream);border:5px solid var(--ink);border-radius:48px;box-shadow:16px 16px 0 var(--shadow);padding:16px 12px 12px}
+.phone::before{content:"";position:absolute;top:12px;left:50%;width:34%;height:14px;transform:translateX(-50%);background:var(--ink);border-radius:999px}
+.screen{position:absolute;left:12px;right:12px;top:36px;bottom:12px;border:3px solid var(--ink);border-radius:28px;overflow:hidden;background:#fff}
+.screen iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+</style>
+</head>
+<body>
+<div class="page">
+  <main class="left">
+    <!-- 1. 맨 위: 검색 -->
+    <div class="stage">
+    <h1 class="title">중고거래 시세 노트</h1>
+    <div class="perch">
+      <p class="bubble" id="bubble">시세 확인 → 마지노선 정하기 → 흥정 연습! 시작해 볼까?</p>
+      <div class="mascot"><img id="mascot" src="images/mascot-front.png" alt="마스코트: 흰 후드를 쓴 회색 공룡" width="97" height="134"></div>
+    </div>
+    <section class="card" aria-labelledby="h-search">
+      <header><h2 id="h-search">🔍 시세 검색</h2><span class="tag">SEARCH</span></header>
+      <div class="body">
+        <form class="field" id="searchForm" role="search" autocomplete="off">
+          <input class="input" id="q" type="search" placeholder="사고 싶은 물건을 입력하세요 (예: 에어팟 프로 2)" aria-label="검색어">
+          <button class="btn" type="submit">검색</button>
+        </form>
+        <div class="picks-row"><span class="label">추천 키워드</span><div id="picks" class="chips" role="group" aria-label="추천 키워드"><span class="hint">검색어를 입력하면 여기에 떠요</span></div></div>
+        <div>
+          <div class="label" style="margin-bottom:6px">어디에서 찾아볼까요? (새 탭에서 열려요)</div>
+          <div class="sites" role="group" aria-label="검색할 중고거래 사이트">
+            <button class="site" type="button" data-site="daangn" disabled>🥕 당근</button>
+            <button class="site" type="button" data-site="joongna" disabled>🟢 중고나라</button>
+            <button class="site" type="button" data-site="bunjang" disabled>⚡ 번개장터</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <!-- 2. 그 아래: 왼쪽 마지노선 | 오른쪽 메모 -->
+    <div class="pair">
+      <section class="card" aria-labelledby="h-limit">
+        <header><h2 id="h-limit">🎯 나의 마지노선</h2><span class="tag">MY LIMIT</span></header>
+        <div class="body">
+          <div class="two">
+            <div class="fld"><label class="label" for="target">목표 가격</label><input class="input" id="target" inputmode="numeric" placeholder="예: 13만" autocomplete="off"><p class="hint" id="targetHint"></p></div>
+            <div class="fld"><label class="label" for="limit">마지노선</label><input class="input" id="limit" inputmode="numeric" placeholder="예: 15만" autocomplete="off"><p class="hint" id="limitHint"></p></div>
+          </div>
+          <p class="err" id="limitErr" hidden></p>
+          <div class="fld"><label class="label" for="offer">지금 제시된 가격</label><input class="input" id="offer" inputmode="numeric" placeholder="판매자가 부른 가격" autocomplete="off"><p class="hint" id="offerHint"></p></div>
+          <div id="gauge" class="gauge" aria-hidden="true">
+            <div class="track" id="track"></div>
+            <div class="needle" id="needle" style="visibility:hidden"><b id="needleLab"></b><i></i></div>
+          </div>
+          <div class="verdict" id="verdict" role="status" aria-live="polite"><span class="em" id="vEm">🤔</span><div><b id="vTitle">마지노선을 정해 보세요</b><p id="vText">이 가격 넘으면 안 산다! 하는 선을 먼저 정해 두세요.</p></div></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-memo">
+        <header><h2 id="h-memo">📝 메모</h2><span class="tag">MY NOTES</span></header>
+        <div class="body">
+          <textarea class="memo" id="memo" placeholder="하자, 구성품, 판매자가 한 말, 거래 장소 등을 적어 두세요." aria-label="메모"></textarea>
+          <div class="row"><span class="saved" id="saved">내용은 이 브라우저에 자동 저장돼요.</span><button class="btn ghost" id="clear" type="button">지우기</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 오른쪽: 폰 안의 시뮬레이터 -->
+  <aside class="right" aria-label="흥정 시뮬레이터">
+    <div class="phone"><div class="screen"><iframe id="sim" src="simulator.html" title="당근마켓 흥정 시뮬레이터"></iframe></div></div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var $ = function(s){return document.querySelector(s);};
+  var DATA = null, cur = null, lastList = [];
+
+  /* 폰 화면은 라이트 모드로 열기 (왼쪽 톤과 통일) */
+  try{ localStorage.setItem('sim-theme','light'); }catch(e){}
+
+  /* 마스코트: 정면(기본·좋은 가격) / 옆모습(협상 중) / 뒷모습(마지노선 초과, 홱 돌아섬) */
+  var DEFAULT_SAY = '시세 확인 → 마지노선 정하기 → 흥정 연습! 시작해 볼까?';
+  function mascot(state, text){
+    var img = $('#mascot'), src = 'images/mascot-'+state+'.png';
+    if(img.getAttribute('src') !== src){
+      img.setAttribute('src', src);
+      img.classList.remove('pop'); void img.offsetWidth; img.classList.add('pop');
+    }
+    if(text) $('#bubble').textContent = text;
+  }
+  function won(n){return Number(n).toLocaleString('ko-KR')+'원';}
+  function man(n){
+    if(n>=10000){ var m=n/10000; return (Math.round(m*10)/10).toString().replace(/\.0$/,'')+'만원'; }
+    return won(n);
+  }
+  function norm(s){return String(s).toLowerCase().replace(/\s+/g,'');}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function parsePrice(s){
+    s = String(s).replace(/[,\s원]/g,'');
+    if(!s) return null;
+    var m = s.match(/^(\d+(?:\.\d+)?)만(?:(\d+)천)?$/);
+    if(m) return Math.round(parseFloat(m[1])*10000 + (m[2]?parseInt(m[2],10)*1000:0));
+    if(/^\d+$/.test(s)) return parseInt(s,10);
+    return NaN;
+  }
+
+  /* ---------- 사이트별 검색 열기 (주소 형식은 각 사이트 기준, 안 열리면 알려 주세요) ---------- */
+  var SITES = {
+    daangn:  function(q){return 'https://www.daangn.com/kr/buy-sell/?search='+encodeURIComponent(q);},
+    joongna: function(q){return 'https://web.joongna.com/search/'+encodeURIComponent(q);},
+    bunjang: function(q){return 'https://m.bunjang.co.kr/search/products?q='+encodeURIComponent(q);}
+  };
+  function syncSites(){
+    var has = $('#q').value.trim().length>0;
+    document.querySelectorAll('.site').forEach(function(b){b.disabled = !has;});
+  }
+  document.querySelectorAll('.site').forEach(function(b){
+    b.addEventListener('click', function(){
+      var q = $('#q').value.trim(); if(!q) return;
+      window.open(SITES[b.getAttribute('data-site')](q), '_blank', 'noopener');
+    });
+  });
+
+  /* ---------- 참고 시세(임시 데이터) ---------- */
+  function search(q){
+    var n = norm(q); if(!n || !DATA) return [];
+    var hits = [];
+    DATA.items.forEach(function(it){
+      var score = 0;
+      if(norm(it.name).indexOf(n)>=0) score = 3;
+      it.keywords.forEach(function(k){
+        var kk = norm(k);
+        if(kk===n) score = Math.max(score,3);
+        else if(kk.indexOf(n)>=0) score = Math.max(score,2);
+        else if(kk.length>=2 && n.indexOf(kk)>=0) score = Math.max(score,1);
+      });
+      if(score) hits.push({it:it,score:score});
+    });
+    hits.sort(function(a,b){return b.score-a.score;});
+    return hits.map(function(h){return h.it;});
+  }
+  function confClass(c){return c==='보통'?'mid':(c==='낮음'?'low':'est');}
+  function renderPicks(){
+    var box = $('#picks');
+    if(!lastList.length){ box.innerHTML = '<span class="hint">'+($('#q').value.trim()?'추천 키워드가 없어요. 아래 사이트에서 바로 찾아보세요':'검색어를 입력하면 여기에 떠요')+'</span>'; return; }
+    box.innerHTML = lastList.map(function(it){
+      return '<button type="button" class="chip" data-id="'+it.id+'" aria-pressed="false">'+esc(it.name)+'</button>';
+    }).join('');
+  }
+  function renderRef(){
+    return; var box;
+    if(!cur){ box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="grow"><div class="nm">참고 시세 · '+esc(cur.name)+'</div>'+
+      '<div class="sub"><span class="badge '+confClass(cur.confidence)+'">신뢰도 '+esc(cur.confidence)+'</span> '+(cur.sampleCount?('표본 '+cur.sampleCount+'건'):'추정값')+' · 임시 · 기준일 '+esc(DATA.asOf)+'</div></div>'+
+      '<div><div class="px">'+man(cur.mid)+'</div><div class="sub">'+man(cur.low)+' ~ '+man(cur.high)+'</div></div>'+
+      '<button class="btn ghost" type="button" id="useRef" title="목표 가격 = 대표 시세, 마지노선 = 시세 상한">내 마지노선에 적용</button>';
+  }
+  function doSearch(){
+    var q = $('#q').value.trim();
+    lastList = q ? search(q) : [];
+    cur = lastList[0] || null;
+    renderPicks(); renderRef();
+    if(!q) mascot('front', DEFAULT_SAY);
+    else if(cur) mascot('front', cur.name+' 시세는 대략 '+man(cur.mid)+'이래! 아래에서 마지노선을 정해 보자.');
+    else mascot('front', '시세 데이터에는 없는 물건이야. 위 사이트에서 직접 찾아보자!');
+  }
+
+  /* ---------- 마지노선 판정 ---------- */
+  var LKEY = 'note-limits';
+  function saveLimits(){
+    try{ localStorage.setItem(LKEY, JSON.stringify({t:$('#target').value, l:$('#limit').value, o:$('#offer').value})); }catch(e){}
+  }
+  function judge(){
+    var t = parsePrice($('#target').value), l = parsePrice($('#limit').value), o = parsePrice($('#offer').value);
+    var errEl = $('#limitErr'), bad = false;
+    function hint(id,v){ $(id).textContent = (v && !isNaN(v)) ? '= '+won(v) : ''; }
+    hint('#targetHint',t); hint('#limitHint',l); hint('#offerHint',o);
+    errEl.hidden = true;
+    if((t!==null && (isNaN(t)||t<=0)) || (l!==null && (isNaN(l)||l<=0)) || (o!==null && (isNaN(o)||o<=0))){
+      errEl.textContent = '가격은 숫자로 입력해 주세요. (예: 140000 또는 14만)'; bad = true;
+    } else if(t!==null && l!==null && t>l){
+      errEl.textContent = '목표 가격은 마지노선보다 낮거나 같아야 해요.'; bad = true;
+    }
+    var vd = $('#verdict'), gauge = $('#gauge'), needle = $('#needle');
+    function say(cls,em,title,text){ vd.className='verdict '+cls; $('#vEm').textContent=em; $('#vTitle').textContent=title; $('#vText').textContent=text; }
+    if(bad || l===null){
+      $('#track').innerHTML=''; Array.prototype.slice.call(gauge.querySelectorAll('.gl')).forEach(function(n){n.remove();}); needle.style.visibility='hidden';
+      if(!bad){ say('', '🤔','마지노선을 정해 보세요','이 가격 넘으면 안 산다! 하는 선을 먼저 정해 두세요.'); if(window.__judged) mascot('front', '마지노선을 정해 두면 흥정할 때 안 흔들려!'); }
+      else { say('', '⚠️','입력을 확인해 주세요',errEl.textContent); mascot('front','어라, 입력을 다시 확인해 줘!'); }
+      window.__judged = true;
+      return;
+    }
+    /* 게이지: 목표 이하(초록) / 협상 구간(노랑) / 마지노선 초과(빨강) */
+    var tt = (t!==null) ? t : null;
+    var lo = Math.max(0, (tt!==null?tt:l)*0.6), hi = l*1.4;
+    var p = function(v){return Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));};
+    var a = tt!==null ? p(tt) : 0, b = p(l);
+    $('#track').innerHTML =
+      (tt!==null ? '<div class="zone ok" style="left:0;width:'+a+'%"></div><div class="zone nego" style="left:'+a+'%;width:'+(b-a)+'%"></div>'
+                 : '<div class="zone ok" style="left:0;width:'+b+'%"></div>')+
+      '<div class="zone over" style="left:'+b+'%;right:0"></div>';
+    Array.prototype.slice.call(gauge.querySelectorAll('.gl')).forEach(function(n){n.remove();});
+    /* 두 눈금이 가까워도 글자가 겹치지 않게: 목표는 눈금 왼쪽, 마지노선은 눈금 오른쪽으로 펼친다 */
+    var gl = function(v,tx,side){return '<div class="gl" style="left:'+p(v)+'%;transform:translateX('+(side==='l'?'-100%':'0')+');text-align:'+(side==='l'?'right':'left')+'"><b>'+man(v)+'</b>'+tx+'</div>';};
+    gauge.insertAdjacentHTML('beforeend', (tt!==null?gl(tt,'목표','l'):'')+gl(l,'마지노선','r'));
+    gauge.hidden = false;
+
+    if(o===null){
+      needle.style.visibility='hidden';
+      say('', '🤔','제시된 가격을 입력해 보세요','마지노선은 '+won(l)+(tt!==null?', 목표는 '+won(tt):'')+'이에요.');
+      mascot('front','마지노선 '+man(l)+'! 판매자가 부른 가격을 알려 줘.'); window.__judged = true;
+      return;
+    }
+    needle.style.visibility='visible';
+    needle.style.left = Math.max(5,Math.min(95,p(o)))+'%';
+    $('#needleLab').textContent = man(o);
+    window.__judged = true;
+    if(tt!==null && o<=tt) mascot('front','와, 목표 이하야! 하자만 확인하고 사자!');
+    else if(o<=l) mascot('side','음… 마지노선까지 '+man(l-o)+' 남았어. 더 깎아 볼까?');
+    else mascot('back','마지노선 넘었어! 홱~ 돌아서자.');
+    if(tt!==null && o<=tt) say('v-ok','🎉','목표 이하예요!',(o===tt?'목표 가격과 딱 같아요. ':'목표보다 '+won(tt-o)+' 싸요. ')+'하자와 구성품만 확인하고 바로 사도 좋아요.');
+    else if(o<=l){
+      var left = l-o;
+      say('v-nego','🤝','협상 구간이에요','마지노선까지 '+won(left)+' 남았어요.'+(tt!==null?' 목표까지는 '+won(o-tt)+' 더 깎아 보세요.':''));
+    }
+    else say('v-over','⛔','마지노선을 넘었어요','마지노선보다 '+won(o-l)+' 비싸요. 더 깎거나 과감하게 포기하세요.');
+  }
+  ['#target','#limit','#offer'].forEach(function(s){ $(s).addEventListener('input', function(){ judge(); saveLimits(); }); });
+  try{
+    var sv = JSON.parse(localStorage.getItem(LKEY)||'null');
+    if(sv){ $('#target').value = sv.t||''; $('#limit').value = sv.l||''; $('#offer').value = sv.o||''; }
+  }catch(e){}
+  judge();
+
+  /* ---------- 메모 ---------- */
+  var KEY = 'note-memo', t;
+  var memo = $('#memo');
+  try{ var m = localStorage.getItem(KEY); if(m) memo.value = m; }catch(e){}
+  memo.addEventListener('input', function(){
+    $('#saved').textContent = '저장 중…';
+    clearTimeout(t);
+    t = setTimeout(function(){
+      try{ localStorage.setItem(KEY, memo.value); $('#saved').textContent = '자동 저장됨'; }
+      catch(e){ $('#saved').textContent = '이 브라우저에서는 저장되지 않아요 (새로고침하면 사라져요)'; }
+    }, 400);
+  });
+  var armed = false, armT;
+  $('#clear').addEventListener('click', function(){
+    var b = this;
+    if(!armed){ armed = true; b.textContent = '한 번 더 누르면 지워져요'; armT = setTimeout(function(){armed=false; b.textContent='지우기';}, 2500); return; }
+    clearTimeout(armT); armed = false; b.textContent = '지우기';
+    memo.value = ''; try{ localStorage.removeItem(KEY); }catch(e){}
+    $('#saved').textContent = '메모를 지웠어요';
+  });
+
+  /* ---------- 이벤트 ---------- */
+  $('#searchForm').addEventListener('submit', function(e){ e.preventDefault(); doSearch(); });
+  $('#q').addEventListener('input', function(){ syncSites(); doSearch(); });
+  document.addEventListener('click', function(e){
+    var c = e.target.closest('[data-id]');
+    if(c && DATA){
+      var id = +c.getAttribute('data-id');
+      var it = DATA.items.filter(function(x){return x.id===id;})[0];
+      if(it){ $('#q').value = it.name; syncSites(); cur = it; mascot('front', it.name+' 시세는 대략 '+man(it.mid)+'이래! 아래 사이트에서 직접 확인해 봐.'); $('#q').focus(); }
+      return;
+    }
+    if(e.target.id==='useRef' && cur){
+      $('#target').value = String(cur.mid); $('#limit').value = String(cur.high);
+      judge(); saveLimits();
+    }
+  });
+
+  fetch('data/prices.json').then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d){ DATA = d; doSearch(); })
+    .catch(function(){ DATA = null; /* 참고 시세는 없어도 검색 버튼과 마지노선은 동작 */ });
+})();
+
+function fitLeft(){const l=document.querySelector('.left');const els=[document.querySelector('.stage'),document.querySelector('.pair')];
+els.forEach(e=>e.style.zoom=1);const need=l.scrollHeight,av=l.clientHeight;
+const z=need>av?Math.max(.45,av/need):1;els.forEach(e=>e.style.zoom=z);}
+addEventListener('resize',fitLeft);addEventListener('load',fitLeft);if(document.fonts)document.fonts.ready.then(fitLeft);
+</script>
+</body>
+</html>
